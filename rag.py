@@ -8,7 +8,6 @@ from langchain_core.prompts import PromptTemplate
 from langchain_ollama import OllamaLLM
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# Reference: https://medium.com/@spandanmaity58/implementing-rag-using-langchain-ollama-and-qdrant-8b7b832fc3da
 class RAG:
     def __init__(self, qdrant_url, embedding_model, llama_model):
         self.qdrant_url = qdrant_url
@@ -33,9 +32,10 @@ class RAG:
             collection_name=collection_name,
             force_recreate=True
         )
-        print("Dodano")
+        print("Documents added successfully!")
 
     def get_chain(self, collection_name):
+        """Create and return a retrieval chain for the given collection"""
         qDrant_vector = QdrantVectorStore.from_existing_collection(
             collection_name=collection_name, 
             url=self.qdrant_url,
@@ -43,7 +43,6 @@ class RAG:
         )
         retriever = qDrant_vector.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
-        # Define the prompt template
         prompt_template = """
         1. Use the context to answer the question.
         2. Don't make up an answer on your own if you don't know it.\n
@@ -62,13 +61,15 @@ class RAG:
             prompt=prompt
         )
 
-        return create_retrieval_chain(
+        retrieval_chain = create_retrieval_chain(
             retriever=retriever,
             combine_docs_chain=document_chain
         )
+        
+        return retrieval_chain
 
     def odgovori(self, question, collection_name):
-        retrieval_chain = self.get_chain(collection_name)
-
-        res = retrieval_chain.invoke({"input": question})
+        """Get answer for a question using the specified collection"""
+        chain = self.get_chain(collection_name)
+        res = chain.invoke({"input": question})
         return {"answer": res["answer"]}
